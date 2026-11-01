@@ -44,11 +44,12 @@ header.top{margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .top-row{display:flex;align-items:center;gap:12px;justify-content:space-between;max-width:760px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.brand h1{overflow:hidden;text-overflow:ellipsis}
 .brand h1{font-family:var(--f-display);font-weight:800;font-size:1.3rem;margin:0;letter-spacing:-.01em;white-space:nowrap}
 .suits{font-size:.95rem;letter-spacing:.15em;opacity:.8}
 .suits .r{color:#ff7a84}
-.filter{background:transparent;color:var(--head-fg);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 12px;max-width:52vw}
+.filter{background:transparent;color:var(--head-fg);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 10px;max-width:40vw;min-width:0}
 .filter option{color:#1b2130;background:#fff}
 main{max-width:760px;margin:0 auto;padding-top:16px;display:flex;flex-direction:column;gap:18px}
 h2{font-family:var(--f-display);font-weight:700;font-size:1.15rem;margin:0;text-wrap:balance}
@@ -66,7 +67,7 @@ h2{font-family:var(--f-display);font-weight:700;font-size:1.15rem;margin:0;text-
 .standings li:last-child{border-bottom:0}
 .rank{font-family:var(--f-display);font-weight:800;color:var(--muted);font-size:1.1rem}
 .pname{font-weight:700;display:flex;align-items:center;gap:8px;min-width:0}
-.pname span.n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pname span.n{min-width:0;overflow-wrap:anywhere}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .sub{font-size:.82rem;color:var(--muted);font-weight:400}
 .big{font-family:var(--f-display);font-weight:800;font-size:1.45rem;font-variant-numeric:tabular-nums;text-align:right}
@@ -113,10 +114,10 @@ textarea{width:100%;min-height:120px;font-family:ui-monospace,monospace;font-siz
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:center;
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 nav.tabs .in{display:flex;width:100%;max-width:760px}
-nav.tabs button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:.8rem;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button{flex:1;min-width:0;border:0;background:none;padding:10px 2px 12px;font-size:.72rem;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
 nav.tabs button .ic{font-size:1.15rem;line-height:1}
 nav.tabs button[aria-current=true]{color:var(--re)}
-nav.tabs button.add .ic{background:var(--re);color:var(--sheet);border-radius:12px;width:44px;height:30px;display:grid;place-items:center;font-size:1.4rem}
+nav.tabs button.add .ic{background:var(--re);color:var(--sheet);border-radius:12px;width:40px;height:30px;display:grid;place-items:center;font-size:1.4rem}
 /* Form sheet */
 .overlay{position:fixed;inset:0;z-index:20;background:var(--paper);overflow-y:auto;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
@@ -183,6 +184,7 @@ details summary{cursor:pointer;font-weight:700}
 <main id="main"></main>
 <nav class="tabs" aria-label="Bereiche"><div class="in">
   <button data-tab="stand"><span class="ic">≡</span>Stand</button>
+  <button data-tab="leistung"><span class="ic">⚖</span>Leistung</button>
   <button data-tab="block"><span class="ic">▤</span>Block</button>
   <button class="add" data-act="new"><span class="ic">+</span>Spiel</button>
   <button data-tab="spieler"><span class="ic">◉</span>Spieler</button>
@@ -345,18 +347,18 @@ function playerStats(id,games){
 const pct=(a,b)=>b?Math.round(100*a/b)+' %':'–';
 
 /* ---------- Diagramm ---------- */
-function chart(series,{w=340,hgt=150}={}){
-  const len=Math.max(...series.map(s=>s.v.length),1);
-  const vals=series.flatMap(s=>s.v).concat(0);
+function chart(series,{w=340,hgt=150,base=0}={}){
+  const len=Math.max(...series.map(s=>s.x?s.x[s.x.length-1]+1:s.v.length),2);
+  const vals=series.flatMap(s=>s.v).concat(base);
   let lo=Math.min(...vals),hi=Math.max(...vals);if(hi-lo<10){hi+=5;lo-=5}
   const padL=30,padR=10,padT=10,padB=18;
   const X=i=>padL+(len<=1?0:(w-padL-padR)*i/(len-1));
   const Y=v=>padT+(hgt-padT-padB)*(hi-v)/(hi-lo);
   const step=niceStep(hi-lo);let ticks=[];for(let t=Math.ceil(lo/step)*step;t<=hi;t+=step)ticks.push(t);
   let s=`<svg viewBox="0 0 ${w} ${hgt}" role="img" aria-label="Punkteverlauf">`;
-  for(const t of ticks)s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--rule)" stroke-width="${t===0?1.5:1}"${t===0?' stroke-dasharray="0"':''}/><text x="${padL-6}" y="${Y(t)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">${t}</text>`;
-  s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
-  s+=`<text x="${padL}" y="${hgt-4}" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Spiel 1</text><text x="${w-padR}" y="${hgt-4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Spiel ${len}</text>`;
+  for(const t of ticks)s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--rule)" stroke-width="1"/><text x="${padL-6}" y="${Y(t)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">${t}</text>`;
+  s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(base)}" y2="${Y(base)}" stroke="var(--muted)" stroke-width="1"/>`;
+  s+=`<text x="${padL}" y="${hgt-4}" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Start</text><text x="${w-padR}" y="${hgt-4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Spiel ${len-1}</text>`;
   for(const se of series){
     if(!se.v.length)continue;
     const pts=se.v.map((v,i)=>`${X(se.x?se.x[i]:i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
@@ -367,13 +369,60 @@ function chart(series,{w=340,hgt=150}={}){
 }
 function niceStep(range){const raw=range/4;const p=Math.pow(10,Math.floor(Math.log10(raw)));for(const m of [1,2,5,10])if(raw<=m*p)return m*p;return 10*p}
 
+/* ---------- Leistung & Elo ---------- */
+const K_DAMP=40,ELO_START=1500,ELO_PROV=20;
+const f2=n=>(n>0?'+':'')+n.toFixed(2).replace('.',',');
+function elo(){
+  const R={},N={},hist={},last={};
+  const init=id=>{if(R[id]==null){R[id]=ELO_START;N[id]=0;hist[id]={v:[ELO_START],x:[0]}}};
+  sorted().forEach((g,idx)=>{
+    const c=compute(g),re=g.re,ko=g.players.filter(x=>!re.includes(x));
+    g.players.forEach(init);
+    const avg=a=>a.reduce((t,x)=>t+R[x],0)/a.length;
+    const E=1/(1+Math.pow(10,(avg(ko)-avg(re))/400));
+    const S=c.value>0?1:c.value<0?0:0.5;
+    const f=Math.min(2,Math.max(0.5,Math.sqrt(Math.abs(c.value)||1)/2));
+    const D=(S-E)*f,K=id=>N[id]<ELO_PROV?40:20;
+    const ch={};
+    for(const id of re)ch[id]=(c.solo?1.5:1)*K(id)*D;
+    for(const id of ko)ch[id]=-(c.solo?0.5:1)*K(id)*D;
+    for(const id of g.players){R[id]+=ch[id];N[id]++;last[id]=ch[id];hist[id].v.push(R[id]);hist[id].x.push(idx+1)}
+  });
+  return {R,N,hist,last};
+}
+function vLeistung(){
+  const games=filtered();
+  if(!games.length) return `<section class="sheet empty">Noch keine Spiele${state.filter!=='all'?' in diesem Zeitraum':''}.</section>`;
+  const rows=standings(games).map(s=>({...s,raw:s.pts/s.n,perf:s.pts/(s.n+K_DAMP)})).sort((a,b)=>b.perf-a.perf);
+  const list=rows.map((s,i)=>`<li data-act="openPlayer" data-id="${s.id}" style="cursor:pointer"><span class="rank">${i+1}</span>
+    <span class="pname"><span class="dot" style="background:${pColor(s.id)}"></span><span class="n">${h(pName(s.id))}<br><span class="sub">${s.n} Spiele · ${sg(s.pts)} Pkt. · roh ${f2(s.raw)} je Spiel</span></span></span>
+    <span class="big ${cls(s.perf)}">${f2(s.perf)}</span></li>`).join('');
+  const E=elo(),ids=Object.keys(E.R).sort((a,b)=>E.R[b]-E.R[a]);
+  const elist=ids.map((id,i)=>`<li data-act="openPlayer" data-id="${id}" style="cursor:pointer"><span class="rank">${i+1}</span>
+    <span class="pname"><span class="dot" style="background:${pColor(id)}"></span><span class="n">${h(pName(id))}${E.N[id]<ELO_PROV?' <span class="tag ko">vorläufig</span>':''}<br><span class="sub">${E.N[id]} Spiele · zuletzt ${sg(Math.round(E.last[id]))}</span></span></span>
+    <span class="big">${Math.round(E.R[id])}</span></li>`).join('');
+  return `<section class="stack"><div class="row" style="justify-content:space-between"><h2>Leistung</h2><span class="sub">Punkte ÷ (Spiele + ${K_DAMP})</span></div>
+    <div class="sheet"><ol class="standings">${list}</ol></div>
+    <p class="help">Jeder bekommt rechnerisch ${K_DAMP} Spiele mit 0 Punkten dazu. Wer viel spielt, merkt davon kaum etwas; ein paar Glücksspiele zählen dadurch nur noch wenig.</p></section>
+    <section class="stack"><div class="row" style="justify-content:space-between"><h2>Elo-Wertung <span class="tag solo">experimentell</span></h2><span class="sub">alle Spiele</span></div>
+    <div class="sheet"><ol class="standings">${elist}</ol>
+    <div class="chart-wrap">${chart(ids.map(id=>({v:E.hist[id].v,x:E.hist[id].x,c:pColor(id)})),{base:ELO_START})}</div>
+    <div class="legend">${ids.map(id=>`<span><span class="dot" style="background:${pColor(id)}"></span>${h(pName(id))}</span>`).join('')}</div></div>
+    <details class="sheet pad help"><summary>So funktioniert die Elo-Wertung</summary><ul>
+      <li>Alle starten mit ${ELO_START}. Die Wertung wird nach jedem Spiel in zeitlicher Reihenfolge fortgeschrieben und gilt immer über alle Spiele, unabhängig vom Filter oben.</li>
+      <li>Vor jedem Spiel wird aus dem Schnitt der aktuellen Wertzahlen beider Parteien eine Gewinnerwartung berechnet. Im Solo zählt der Solist allein gegen den Schnitt der drei Gegner.</li>
+      <li>Gewinnt der Außenseiter, gibt es viele Punkte; gewinnt der Favorit, nur wenige. Wer mit einem starken Partner gewinnt, bekommt also weniger.</li>
+      <li>Höhe der Änderung: 20 je Spiel, in den ersten ${ELO_PROV} Spielen eines Spielers 40 (vorläufig). Hohe Spielwerte zählen etwas mehr (Faktor 0,5 bis 2 nach Wurzel des Spielwerts).</li>
+      <li>Im Solo bewegt sich der Solist um das 1,5-Fache, jeder Gegner um die Hälfte.</li></ul></details></section>`;
+}
+
 /* ---------- Ansichten ---------- */
 function render(){
   renderFilter();
   document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===state.tab));
   const M=document.getElementById('main');
   let out=db.example?`<div class="banner"><span><b>Beispieldaten</b> – so sieht ein Spieleabend aus. Für eure Familie einfach leeren und eigene Spieler anlegen.</span><button class="btn small" data-act="clearExample">Leeren &amp; loslegen</button></div>`:'';
-  out+=({stand:vStand,block:vBlock,spieler:vSpieler,regeln:vRegeln,teilen:vTeilen})[state.tab]();
+  out+=({stand:vStand,leistung:vLeistung,block:vBlock,spieler:vSpieler,regeln:vRegeln,teilen:vTeilen})[state.tab]();
   M.innerHTML=out;
   saveUi();
 }
@@ -449,6 +498,8 @@ function vSpieler(){
       <div><span class="label">Spiele</span><b>${st.n}</b></div>
       <div><span class="label">Gewonnen</span><b>${pct(st.won,st.n)}</b><span class="sub">${st.won} von ${st.n}</span></div>
       <div><span class="label">Ø pro Spiel</span><b class="${cls(st.pts)}">${(st.pts/st.n).toFixed(2).replace('.',',')}</b></div>
+      <div><span class="label">Leistung</span><b class="${cls(st.pts)}">${f2(st.pts/(st.n+K_DAMP))}</b><span class="sub">gedämpft, +${K_DAMP} Spiele</span></div>
+      ${(()=>{const E=elo();return E.R[id]!=null?`<div><span class="label">Elo (exp.)</span><b>${Math.round(E.R[id])}</b><span class="sub">${E.N[id]<ELO_PROV?'vorläufig':'über alle Spiele'}</span></div>`:''})()}
       <div><span class="label">als Re</span><b>${pct(st.reW,st.reN)}</b><span class="sub">${st.reW} von ${st.reN} gewonnen</span></div>
       <div><span class="label">als Kontra</span><b>${pct(st.koW,st.koN)}</b><span class="sub">${st.koW} von ${st.koN} gewonnen</span></div>
       <div><span class="label">Mit Ansage</span><b>${pct(st.anW,st.anN)}</b><span class="sub">${st.anW} von ${st.anN} gewonnen</span></div>
