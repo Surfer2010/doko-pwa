@@ -170,7 +170,7 @@ input[type=range]{width:100%;accent-color:var(--re);margin:0}
 details summary{cursor:pointer;font-weight:700}
 .help{font-size:.85rem;color:var(--muted)}
 .help ul{margin:6px 0 0;padding-left:18px}
-@media (prefers-reduced-motion:no-preference){.overlay{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
+@media (prefers-reduced-motion:no-preference){.overlay.opening{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
 </style>
 
 </head>
@@ -673,7 +673,10 @@ function renderForm(){
   const absSel=(side,v)=>`<select id="f-${side}abs" aria-label="Absage">${ABS.map((l,i)=>`<option value="${i}"${+v===i?' selected':''}>${i?l:'keine Absage'}</option>`).join('')}</select>`;
   const EXA=EX.filter(x=>R[x[0]]);
   const exCol=s=>solo||!EXA.length?'':`<div class="excol">${EXA.map(([k,l])=>`<div class="exrow"><span title="${l}">${({fuchs:'Fuchs',doko:'Doko',karl:'Karlchen'})[k]}</span><span class="step ${s}"><button data-act="ex" data-k="${k}" data-s="${s}" data-d="-1" aria-label="${l} ${s==='re'?'Re':'Kontra'} weniger">−</button><b>${f.ex[s][k]||0}</b><button data-act="ex" data-k="${k}" data-s="${s}" data-d="1" aria-label="${l} ${s==='re'?'Re':'Kontra'} mehr">+</button></span></div>`).join('')}</div>`;
-  O.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Spiel eintragen"><div class="inner">
+  // Scrollposition und Fokus über das Neuzeichnen hinweg erhalten
+  const prev=O.querySelector('.overlay'),top=prev?prev.scrollTop:0,ae=document.activeElement;
+  const fkey=ae&&ae.dataset&&ae.dataset.act?['act','id','k','s','d','t'].map(k=>ae.dataset[k]?`[data-${k}="${CSS.escape(ae.dataset[k])}"]`:'').join(''):ae&&ae.id&&O.contains(ae)?'#'+CSS.escape(ae.id):null;
+  O.innerHTML=`<div class="overlay${prev?'':' opening'}" role="dialog" aria-modal="true" aria-label="Spiel eintragen"><div class="inner">
     <div class="fhead"><h2>${f.id?'Spiel bearbeiten':'Neues Spiel'}</h2><input type="date" id="f-date" value="${h(f.date)}" aria-label="Datum"></div>
     <div class="fsec"><span class="label">Am Tisch (${f.players.length}/4)</span><div class="chips">${tbl}</div>
       <div class="row"><input type="text" id="f-newp" placeholder="Spieler fehlt? Name eingeben" style="flex:1"><button class="btn small" data-act="fAddP">Anlegen</button></div></div>
@@ -699,6 +702,8 @@ function renderForm(){
   </div></div>
   <div class="savebar"><div class="in">${f.id?'<button class="btn danger" data-act="askDelGame">Löschen</button>':''}<button class="btn" data-act="closeForm">Abbrechen</button><button class="btn primary" data-act="saveGame" id="f-save">Speichern</button></div></div>`;
   renderPreview();
+  const ov=O.querySelector('.overlay');ov.scrollTop=top;
+  if(fkey){const el=ov.querySelector(fkey);if(el)el.focus({preventScroll:true})}
 }
 function renderPreview(){
   const f=state.form,P=document.getElementById('f-prev');if(!P)return;
