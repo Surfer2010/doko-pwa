@@ -124,25 +124,34 @@ nav.tabs button.add .ic{background:var(--re);color:var(--sheet);border-radius:12
 .overlay .inner{max-width:640px;margin:0 auto;padding-block:16px 120px;display:flex;flex-direction:column;gap:20px}
 .fhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .fsec{display:flex;flex-direction:column;gap:8px}
-.augen{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
-.augen .side{border-radius:var(--r);padding:10px 12px;text-align:center}
+.augen{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.augen .side{border-radius:var(--r);padding:4px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
 .augen .side.re{background:var(--re-soft);color:var(--re)} .augen .side.ko{background:var(--ko-soft);color:var(--ko)}
-.augen input{width:100%;text-align:center;font-family:var(--f-display);font-size:1.7rem;font-weight:800;border:0;background:transparent;color:inherit;padding:0}
-.augen .ko b{font-family:var(--f-display);font-size:1.7rem;font-weight:800;display:block}
-.augen .colon{font-family:var(--f-display);font-size:1.6rem;font-weight:800}
-input[type=range]{width:100%;accent-color:var(--re)}
+.augen .side .label{color:inherit}
+.augen input{width:4ch;text-align:right;font-family:var(--f-display);font-size:1.5rem;font-weight:800;border:0;background:transparent;color:inherit;padding:0}
+.augen .ko b{font-family:var(--f-display);font-size:1.5rem;font-weight:800}
+.augen .colon{font-family:var(--f-display);font-size:1.4rem;font-weight:800}
+input[type=range]{width:100%;accent-color:var(--re);margin:0}
 .party{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.party>div{border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px}
+.party>div{border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.party select{width:100%}
 .party .re{background:var(--re-soft)} .party .ko{background:var(--ko-soft)}
 .party h3{margin:0;font-family:var(--f-display);font-size:1rem}
 .party .re h3{color:var(--re)} .party .ko h3{color:var(--ko)}
-.tog{border:1.5px solid currentColor;border-radius:8px;background:transparent;padding:6px 8px;font-weight:700;text-align:left}
+.tog{border:1.5px solid currentColor;border-radius:8px;background:transparent;padding:6px 8px;font-weight:700;text-align:left;font-size:.9rem}
 .party .re .tog{color:var(--re)} .party .ko .tog{color:var(--ko)}
 .tog.on{background:currentColor}
 .party .re .tog.on span{color:var(--re-soft)} .party .ko .tog.on span{color:var(--ko-soft)}
-.extras{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center}
+.excol{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.exrow{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:.88rem;min-width:0}
+.exrow>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chips.one{flex-wrap:nowrap;gap:6px}
+.chips.one .chip{flex:1 1 0;min-width:0;justify-content:center;padding:7px 6px;font-size:.88rem}
+.chips.one .chip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:center}
+.typesel{width:100%;font-weight:700;padding:10px}
 .step{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:999px;background:var(--sheet)}
-.step button{border:0;background:none;width:32px;height:32px;font-weight:800;font-size:1.1rem}
+.step{flex:none}
+.step button{border:0;background:none;width:28px;height:28px;font-weight:800;font-size:1.05rem}
 .step b{min-width:1.4em;text-align:center;font-family:var(--f-display)}
 .step.re{border-color:var(--re);color:var(--re)} .step.ko{border-color:var(--ko);color:var(--ko)}
 .preview{border:2px solid var(--ink);border-radius:var(--r);background:var(--sheet);padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -160,7 +169,6 @@ input[type=range]{width:100%;accent-color:var(--re)}
 details summary{cursor:pointer;font-weight:700}
 .help{font-size:.85rem;color:var(--muted)}
 .help ul{margin:6px 0 0;padding-left:18px}
-@media (max-width:420px){.party{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:no-preference){.overlay{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
 </style>
 
@@ -609,29 +617,28 @@ function renderForm(){
   document.body.style.overflow='hidden';
   const solo=soloG(f),R=rules();
   const tbl=db.players.map(p=>{const on=f.players.includes(p.id);return `<button class="chip${on?' on':''}${!on&&f.players.length>=4?' dim':''}" data-act="tp" data-id="${p.id}" aria-pressed="${on}"><span class="dot" style="background:${pColor(p.id)}"></span>${h(p.name)}</button>`}).join('');
-  const types=TYPES.map(([t,l])=>`<button class="chip${f.type===t?' on':''}" data-act="type" data-t="${t}" aria-pressed="${f.type===t}">${l}</button>`).join('');
+  const types=TYPES.map(([t,l])=>`<option value="${t}"${f.type===t?' selected':''}>${l}</option>`).join('');
   const reChips=f.players.map(id=>{const on=f.re.includes(id);return `<button class="chip re${on?' on':''}" data-act="re" data-id="${id}" aria-pressed="${on}">${h(pName(id))}</button>`}).join('');
   const absSel=(side,v)=>`<select id="f-${side}abs" aria-label="Absage">${ABS.map((l,i)=>`<option value="${i}"${+v===i?' selected':''}>${i?l:'keine Absage'}</option>`).join('')}</select>`;
   const EXA=EX.filter(x=>R[x[0]]);
-  const ex=solo?'<p class="help">Im Solo gibt es keine Sonderpunkte.</p>':!EXA.length?'<p class="help">Keine Sonderpunkte aktiv.</p>':`<div class="extras"><span></span><span class="label" style="color:var(--re)">Re</span><span class="label" style="color:var(--ko)">Kontra</span>
-    ${EXA.map(([k,l])=>`<span>${l}</span>${['re','ko'].map(s=>`<span class="step ${s}"><button data-act="ex" data-k="${k}" data-s="${s}" data-d="-1" aria-label="${l} ${s} weniger">−</button><b>${f.ex[s][k]||0}</b><button data-act="ex" data-k="${k}" data-s="${s}" data-d="1" aria-label="${l} ${s} mehr">+</button></span>`).join('')}`).join('')}</div>`;
+  const exCol=s=>solo||!EXA.length?'':`<div class="excol">${EXA.map(([k,l])=>`<div class="exrow"><span title="${l}">${({fuchs:'Fuchs',doko:'Doko',karl:'Karlchen'})[k]}</span><span class="step ${s}"><button data-act="ex" data-k="${k}" data-s="${s}" data-d="-1" aria-label="${l} ${s==='re'?'Re':'Kontra'} weniger">−</button><b>${f.ex[s][k]||0}</b><button data-act="ex" data-k="${k}" data-s="${s}" data-d="1" aria-label="${l} ${s==='re'?'Re':'Kontra'} mehr">+</button></span></div>`).join('')}</div>`;
   O.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Spiel eintragen"><div class="inner">
     <div class="fhead"><h2>${f.id?'Spiel bearbeiten':'Neues Spiel'}</h2><input type="date" id="f-date" value="${h(f.date)}" aria-label="Datum"></div>
     <div class="fsec"><span class="label">Am Tisch (${f.players.length}/4)</span><div class="chips">${tbl}</div>
       <div class="row"><input type="text" id="f-newp" placeholder="Spieler fehlt? Name eingeben" style="flex:1"><button class="btn small" data-act="fAddP">Anlegen</button></div></div>
-    <div class="fsec"><span class="label">Spielart</span><div class="chips">${types}</div></div>
-    ${f.type==='hochzeit'?`<div class="fsec"><span class="label">Hochzeit hatte</span><div class="chips">${f.players.map(id=>`<button class="chip re${f.hz===id?' on':''}" data-act="hz" data-id="${id}" aria-pressed="${f.hz===id}">${h(pName(id))}</button>`).join('')||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>
-    ${f.hz?`<div class="fsec"><span class="label">Partner (Re)</span><div class="chips">${f.players.filter(id=>id!==f.hz).map(id=>`<button class="chip re${!f.hzAlone&&f.hzPartner===id?' on':''}" data-act="hzP" data-id="${id}">${h(pName(id))}</button>`).join('')}<button class="chip${f.hzAlone?' on':''}" data-act="hzAlone" aria-pressed="${!!f.hzAlone}">Kein Partner – allein</button></div>
-      <span class="help">Ohne Partner zählt die Hochzeit wie ein Solo (×3), aber ohne Solo-Extrapunkt.</span></div>`:''}`
-    :`<div class="fsec"><span class="label">${solo?'Solist (Re)':'Re-Partei (2 Spieler)'}</span><div class="chips">${reChips||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>`}
+    <div class="fsec"><label class="label" for="f-type">Spielart</label><select id="f-type" class="typesel">${types}</select></div>
+    ${f.type==='hochzeit'?`<div class="fsec"><span class="label">Hochzeit hatte</span><div class="chips one">${f.players.map(id=>`<button class="chip re${f.hz===id?' on':''}" data-act="hz" data-id="${id}" aria-pressed="${f.hz===id}">${h(pName(id))}</button>`).join('')||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>
+    ${f.hz?`<div class="fsec"><span class="label">Partner (Re)</span><div class="chips one">${f.players.filter(id=>id!==f.hz).map(id=>`<button class="chip re${!f.hzAlone&&f.hzPartner===id?' on':''}" data-act="hzP" data-id="${id}">${h(pName(id))}</button>`).join('')}<button class="chip${f.hzAlone?' on':''}" data-act="hzAlone" aria-pressed="${!!f.hzAlone}">allein</button></div>
+      <span class="help">Allein zählt die Hochzeit wie ein Solo (×3), ohne Solo-Extrapunkt.</span></div>`:''}`
+    :`<div class="fsec"><span class="label">${solo?'Solist (Re)':'Re-Partei (2 Spieler)'}</span><div class="chips one">${reChips||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>`}
     <div class="fsec"><span class="label">Augen</span>
-      <div class="augen"><label class="side re"><span class="label" style="color:inherit">${solo?'Solist':'Re'}</span><input type="number" inputmode="numeric" min="0" max="240" id="f-augen" value="${h(f.reAugen)}" placeholder="121"></label>
-      <span class="colon">:</span><div class="side ko"><span class="label" style="color:inherit">Kontra</span><b id="f-ko">${f.reAugen===''?'–':240-(+f.reAugen)}</b></div></div>
+      <div class="augen"><label class="side re"><span class="label">${solo?'Solist':'Re'}</span><input type="number" inputmode="numeric" min="0" max="240" id="f-augen" value="${h(f.reAugen)}" placeholder="121"></label>
+      <span class="colon">:</span><div class="side ko"><b id="f-ko">${f.reAugen===''?'–':240-(+f.reAugen)}</b><span class="label">Kontra</span></div></div>
       <input type="range" min="0" max="240" step="1" id="f-range" value="${f.reAugen===''?120:+f.reAugen}" aria-label="Augen Re"></div>
-    <div class="fsec"><span class="label">Ansagen</span><div class="party">
-      <div class="re"><h3>${solo?'Solist':'Re'}</h3><button class="tog${f.reAn||f.reAbs>0?' on':''}" data-act="an" data-s="re"><span>Re angesagt</span></button>${absSel('re',f.reAbs)}</div>
-      <div class="ko"><h3>Kontra</h3><button class="tog${f.koAn||f.koAbs>0?' on':''}" data-act="an" data-s="ko"><span>Kontra angesagt</span></button>${absSel('ko',f.koAbs)}</div></div></div>
-    <div class="fsec"><span class="label">Sonderpunkte</span>${ex}${!solo&&R.alten?'<span class="help">„Gegen die Alten“ wird automatisch gezählt, wenn Kontra gewinnt.</span>':''}</div>
+    <div class="fsec"><span class="label">Ansagen &amp; Sonderpunkte</span><div class="party">
+      <div class="re"><h3>${solo?'Solist':'Re'}</h3><button class="tog${f.reAn||f.reAbs>0?' on':''}" data-act="an" data-s="re"><span>Re angesagt</span></button>${absSel('re',f.reAbs)}${exCol('re')}</div>
+      <div class="ko"><h3>Kontra</h3><button class="tog${f.koAn||f.koAbs>0?' on':''}" data-act="an" data-s="ko"><span>Kontra angesagt</span></button>${absSel('ko',f.koAbs)}${exCol('ko')}</div></div>
+      ${solo?'<span class="help">Im Solo gibt es keine Sonderpunkte.</span>':R.alten?'<span class="help">„Gegen die Alten“ wird automatisch gezählt, wenn Kontra gewinnt.</span>':''}</div>
     <details${f.manual?' open':''}><summary>Hausregel: Spielwert manuell</summary><div class="row" style="margin-top:8px">
       <label class="row"><input type="checkbox" id="f-manual"${f.manual?' checked':''}> verwenden</label>
       <input type="number" id="f-override" inputmode="numeric" value="${f.override??''}" placeholder="z. B. 5" style="width:7rem" aria-label="Spielwert aus Re-Sicht">
@@ -714,6 +721,7 @@ document.addEventListener('change',async e=>{
   const f=state.form,id=e.target.id;
   if(id==='filter'){state.filter=e.target.value;render();return}
   if(f&&id==='f-date')f.date=e.target.value;
+  if(f&&id==='f-type'){const was=isSolo(f.type);f.type=e.target.value;if(was!==isSolo(f.type)||f.type==='hochzeit')f.re=[];f.hz=null;f.hzAlone=false;f.hzPartner=null;renderForm()}
   if(f&&(id==='f-reabs'||id==='f-koabs')){const s=id.slice(2,4);f[s+'Abs']=+e.target.value;if(f[s+'Abs']>0)f[s+'An']=true;renderForm()}
   if(f&&id==='f-manual'){f.manual=e.target.checked;renderPreview()}
   if(id==='importFile'&&e.target.files[0]){const txt=await e.target.files[0].text();try{state.imp={data:await decode(txt)}}catch(err){state.imp={err:err.message}}render();fillExport()}
