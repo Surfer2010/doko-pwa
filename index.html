@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+<title>Doppelkopf-Block</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1d2a5c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: Spielblock – linierte Kladde mit Spalten je Spieler, Tabs unten, Eingabe als Vollbild-Blatt */
+:root{
+  --paper:#f4f5f0; --sheet:#ffffff; --ink:#1b2130; --muted:#5b6374; --line:#dcdfd4; --rule:#e9ebe3;
+  --re:#24419e; --re-soft:#e4e9f8; --ko:#a8521c; --ko-soft:#f7e9de;
+  --pos:#1d7547; --neg:#c02a35; --head:#1d2a5c; --head-fg:#f4f5f0;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12151b; --sheet:#1a1e26; --ink:#e7e9ef; --muted:#9aa1b1; --line:#2b313d; --rule:#222732;
+  --re:#8aa4ff; --re-soft:#1f2848; --ko:#f0a067; --ko-soft:#3a2617;
+  --pos:#5fcf92; --neg:#ff707a; --head:#0d1020; --head-fg:#e7e9ef; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12151b; --sheet:#1a1e26; --ink:#e7e9ef; --muted:#9aa1b1; --line:#2b313d; --rule:#222732;
+  --re:#8aa4ff; --re-soft:#1f2848; --ko:#f0a067; --ko-soft:#3a2617;
+  --pos:#5fcf92; --neg:#ff707a; --head:#0d1020; --head-fg:#e7e9ef; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--re);outline-offset:2px}
+.num{font-family:var(--f-display);font-variant-numeric:tabular-nums}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+header.top{margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+  background:var(--head);color:var(--head-fg);padding-block:14px 12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.top-row{display:flex;align-items:center;gap:12px;justify-content:space-between;max-width:760px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:1.3rem;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.suits{font-size:.95rem;letter-spacing:.15em;opacity:.8}
+.suits .r{color:#ff7a84}
+.filter{background:transparent;color:var(--head-fg);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 12px;max-width:52vw}
+.filter option{color:#1b2130;background:#fff}
+main{max-width:760px;margin:0 auto;padding-top:16px;display:flex;flex-direction:column;gap:18px}
+h2{font-family:var(--f-display);font-weight:700;font-size:1.15rem;margin:0;text-wrap:balance}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:var(--r)}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--ko-soft);border:1px dashed var(--ko);border-radius:var(--r);padding:10px 14px;font-size:.92rem}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:8px 16px;font-weight:700}
+.btn.primary{background:var(--re);border-color:var(--re);color:var(--sheet)}
+.btn.danger{color:var(--neg);border-color:var(--neg)}
+.btn.small{padding:5px 12px;font-size:.88rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* Standings */
+.standings{list-style:none;margin:0;padding:0}
+.standings li{display:grid;grid-template-columns:2.2rem 1fr auto;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule)}
+.standings li:last-child{border-bottom:0}
+.rank{font-family:var(--f-display);font-weight:800;color:var(--muted);font-size:1.1rem}
+.pname{font-weight:700;display:flex;align-items:center;gap:8px;min-width:0}
+.pname span.n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.sub{font-size:.82rem;color:var(--muted);font-weight:400}
+.big{font-family:var(--f-display);font-weight:800;font-size:1.45rem;font-variant-numeric:tabular-nums;text-align:right}
+.sumline{display:flex;justify-content:space-between;padding:10px 14px;font-size:.85rem;color:var(--muted);border-top:2px solid var(--line)}
+.chart-wrap{padding:12px 10px 6px}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 14px 12px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+/* Block */
+.block-scroll{overflow-x:auto}
+.block{display:grid;min-width:100%}
+.bh{position:sticky;top:0;background:var(--sheet);font-weight:700;font-size:.82rem;padding:10px 6px;border-bottom:2px solid var(--ink);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bh:first-child{text-align:left}
+.brow{display:contents;cursor:pointer}
+.bc{padding:8px 6px 2px;text-align:right;font-family:var(--f-display);font-variant-numeric:tabular-nums;font-weight:700}
+.bc small{display:block;font-weight:500;font-size:.75rem}
+.bc.out{color:var(--muted);font-weight:500}
+.bc.no{text-align:left;color:var(--muted);font-weight:500}
+.bmeta{grid-column:1/-1;padding:0 6px 8px;font-size:.8rem;color:var(--muted);border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:4px 10px}
+.brow:hover .bc,.brow:hover+.bmeta{background:var(--rule)}
+.tag{display:inline-block;border-radius:4px;padding:0 6px;font-weight:700;font-size:.75rem}
+.tag.re{background:var(--re-soft);color:var(--re)} .tag.ko{background:var(--ko-soft);color:var(--ko)}
+.tag.solo{background:var(--ink);color:var(--sheet)}
+.empty{padding:28px 18px;text-align:center;color:var(--muted)}
+/* Players */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--sheet);border-radius:999px;padding:7px 14px;font-weight:700;display:inline-flex;gap:7px;align-items:center}
+.chip.on{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.chip.re.on{background:var(--re);border-color:var(--re)}
+.chip.dim{opacity:.4}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--rule);border-radius:var(--r);overflow:hidden;border:1px solid var(--line)}
+.kv div{background:var(--sheet);padding:10px 12px}
+.kv b{display:block;font-family:var(--f-display);font-size:1.3rem;font-variant-numeric:tabular-nums}
+table.t{width:100%;border-collapse:collapse;font-size:.92rem}
+table.t th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--line)}
+table.t td{padding:8px 12px;border-bottom:1px solid var(--rule)}
+table.t td.r,table.t th.r{text-align:right;font-variant-numeric:tabular-nums}
+.pad{padding:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=number],input[type=date],select,textarea{border:1.5px solid var(--line);background:var(--sheet);border-radius:8px;padding:8px 10px;min-width:0}
+textarea{width:100%;min-height:120px;font-family:ui-monospace,monospace;font-size:.8rem}
+/* Tabs */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--sheet);border-top:1px solid var(--line);display:flex;justify-content:center;
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs .in{display:flex;width:100%;max-width:760px}
+nav.tabs button{flex:1;border:0;background:none;padding:10px 4px 12px;font-size:.8rem;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button .ic{font-size:1.15rem;line-height:1}
+nav.tabs button[aria-current=true]{color:var(--re)}
+nav.tabs button.add .ic{background:var(--re);color:var(--sheet);border-radius:12px;width:44px;height:30px;display:grid;place-items:center;font-size:1.4rem}
+/* Form sheet */
+.overlay{position:fixed;inset:0;z-index:20;background:var(--paper);overflow-y:auto;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.overlay .inner{max-width:640px;margin:0 auto;padding-block:16px 120px;display:flex;flex-direction:column;gap:20px}
+.fhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.fsec{display:flex;flex-direction:column;gap:8px}
+.augen{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.augen .side{border-radius:var(--r);padding:10px 12px;text-align:center}
+.augen .side.re{background:var(--re-soft);color:var(--re)} .augen .side.ko{background:var(--ko-soft);color:var(--ko)}
+.augen input{width:100%;text-align:center;font-family:var(--f-display);font-size:1.7rem;font-weight:800;border:0;background:transparent;color:inherit;padding:0}
+.augen .ko b{font-family:var(--f-display);font-size:1.7rem;font-weight:800;display:block}
+.augen .colon{font-family:var(--f-display);font-size:1.6rem;font-weight:800}
+input[type=range]{width:100%;accent-color:var(--re)}
+.party{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.party>div{border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px}
+.party .re{background:var(--re-soft)} .party .ko{background:var(--ko-soft)}
+.party h3{margin:0;font-family:var(--f-display);font-size:1rem}
+.party .re h3{color:var(--re)} .party .ko h3{color:var(--ko)}
+.tog{border:1.5px solid currentColor;border-radius:8px;background:transparent;padding:6px 8px;font-weight:700;text-align:left}
+.party .re .tog{color:var(--re)} .party .ko .tog{color:var(--ko)}
+.tog.on{background:currentColor}
+.party .re .tog.on span{color:var(--re-soft)} .party .ko .tog.on span{color:var(--ko-soft)}
+.extras{display:grid;grid-template-columns:1fr auto auto;gap:8px 12px;align-items:center}
+.step{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:999px;background:var(--sheet)}
+.step button{border:0;background:none;width:32px;height:32px;font-weight:800;font-size:1.1rem}
+.step b{min-width:1.4em;text-align:center;font-family:var(--f-display)}
+.step.re{border-color:var(--re);color:var(--re)} .step.ko{border-color:var(--ko);color:var(--ko)}
+.preview{border:2px solid var(--ink);border-radius:var(--r);background:var(--sheet);padding:14px;display:flex;flex-direction:column;gap:10px}
+.preview .verdict{font-family:var(--f-display);font-weight:800;font-size:1.25rem}
+.preview ul{margin:0;padding:0;list-style:none;font-size:.9rem;display:flex;flex-direction:column;gap:2px}
+.preview li{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding:2px 0}
+.ppl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ppl div{text-align:center;border-radius:8px;background:var(--rule);padding:6px 4px;font-size:.82rem;min-width:0}
+.ppl div b{display:block;font-family:var(--f-display);font-size:1.2rem}
+.warn{color:var(--neg);font-weight:700;font-size:.9rem}
+.savebar{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--sheet);border-top:1px solid var(--line);
+  padding-block:10px calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.savebar .in{max-width:640px;margin:0 auto;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:999px;z-index:40;font-weight:700;font-size:.9rem;max-width:90vw}
+details summary{cursor:pointer;font-weight:700}
+.help{font-size:.85rem;color:var(--muted)}
+.help ul{margin:6px 0 0;padding-left:18px}
+@media (max-width:420px){.party{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){.overlay{animation:up .18s ease-out}@keyframes up{from{transform:translateY(16px);opacity:.6}}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <div class="brand"><span class="suits" aria-hidden="true">♣<span class="r">♥</span></span><h1>Doppelkopf-Block</h1></div>
+    <select class="filter" id="filter" aria-label="Zeitraum"></select>
+  </div>
+</header>
+<main id="main"></main>
+<nav class="tabs" aria-label="Bereiche"><div class="in">
+  <button data-tab="stand"><span class="ic">≡</span>Stand</button>
+  <button data-tab="block"><span class="ic">▤</span>Block</button>
+  <button class="add" data-act="new"><span class="ic">+</span>Spiel</button>
+  <button data-tab="spieler"><span class="ic">◉</span>Spieler</button>
+  <button data-tab="regeln"><span class="ic">§</span>Regeln</button>
+  <button data-tab="teilen"><span class="ic">⇄</span>Teilen</button>
+</div></nav>
+<div id="overlay"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+const KEY='doko.block.v1';
+const TYPES=[['normal','Normalspiel'],['hochzeit','Hochzeit'],['fleischlos','Fleischlos'],['herz','Herz-Solo'],['pik','Pik-Solo'],['kreuz','Kreuz-Solo'],['buben','Buben-Solo'],['damen','Damen-Solo'],['bubendamen','Buben-Damen-Solo']];
+const TNAME=Object.fromEntries(TYPES);
+const isSolo=t=>t!=='normal'&&t!=='hochzeit';
+const ABS=['keine','keine 90','keine 60','keine 30','schwarz'];
+const ABS_LIMIT=[null,90,60,30,0];
+const COLORS=['#3b5bd6','#d23a47','#1f9a5c','#d07a1e','#8a4fc2','#119aa8','#a5861a','#cc4f93'];
+const EX=[['fuchs','Fuchs gefangen',2],['doko','Doppelkopf',4],['karl','Karlchen',1]];
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sg=n=>n>0?'+'+n:String(n);
+const cls=n=>n>0?'pos':n<0?'neg':'';
+const fmtD=d=>{const [y,m,dd]=d.split('-');return `${dd}.${m}.${y}`};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+/* ---------- Wertung ---------- */
+const DEFAULT_RULES={v:2,mode:'familie',annMult:'each',exDouble:true,fuchs:true,doko:true,karl:false,alten:true,soloBonus:'always'};
+const STUFE=['Gewonnen (Gegner unter 121)','Gegner unter 90','Gegner unter 60','Gegner unter 30','Gegner schwarz'];
+const soloG=g=>isSolo(g.type)||(g.type==='hochzeit'&&!!g.hzAlone);
+function rules(){return {...DEFAULT_RULES,...((typeof db!=='undefined'&&db&&db.rules)||{})}}
+function compute(g,R=rules()){
+  const solo=soloG(g),realSolo=isSolo(g.type),re=+g.reAugen,ko=240-re;
+  const r=+g.reAbs||0,k=+g.koAbs||0;
+  const reAn=!!g.reAn||r>0,koAn=!!g.koAn||k>0;
+  const ful=(opp,L)=>L===4?opp===0:opp<ABS_LIMIT[L];
+  const reWin=r>0?ful(ko,r):k>0?(k===4?re>0:re>=ABS_LIMIT[k]):re>=121;
+  const koWin=k>0?ful(re,k):r>0?(r===4?ko>0:ko>=ABS_LIMIT[r]):ko>=120;
+  const winner=reWin?'re':koWin?'ko':null;
+  const W=winner==='re'?(solo?'Solist':'Re'):'Kontra';
+  const lines=[];let s=0,mult=1;
+  if(winner){
+    const wA=winner==='re'?re:ko,lA=winner==='re'?ko:re,wAbs=winner==='re'?r:k,lAbs=winner==='re'?k:r;
+    const hit=[true,lA<90,lA<60,lA<30,lA===0];
+    if(R.mode==='ddv'){
+      for(let i=0;i<5;i++)if(hit[i]){s++;lines.push([i?STUFE[i]:'Gewonnen','+1'])}
+      if(reAn){s+=2;lines.push(['Re angesagt','+2'])}
+      if(koAn){s+=2;lines.push(['Kontra angesagt','+2'])}
+      for(let i=1;i<=r;i++){s++;lines.push(['Re: '+ABS[i]+' abgesagt','+1'])}
+      for(let i=1;i<=k;i++){s++;lines.push(['Kontra: '+ABS[i]+' abgesagt','+1'])}
+      const vs=[120,90,60,30];
+      for(let i=1;i<=lAbs;i++)if(wA>=vs[i-1]){s++;lines.push([vs[i-1]+' gegen '+ABS[i],'+1'])}
+    }else{
+      for(let i=0;i<5;i++)if(hit[i]){const d=i>0&&i<=wAbs;s+=d?2:1;lines.push([STUFE[i]+(d?' – abgesagt, doppelt':''),d?'+2':'+1'])}
+      for(let i=1;i<=lAbs;i++)if(i===4?wA>0:wA>=ABS_LIMIT[i]){s+=2;lines.push(['Gegner verfehlt „'+ABS[i]+'“ – doppelt','+2'])}
+      mult=R.annMult==='once'?((reAn||koAn)?2:1):(reAn?2:1)*(koAn?2:1);
+    }
+  }
+  const base=winner==='re'?s:winner==='ko'?-s:0;
+  let ex=0;const exLines=[];
+  if(!solo){
+    if(R.alten&&winner==='ko'){ex-=1;exLines.push(['Gegen die Alten','+1 Kontra'])}
+    for(const [key,label] of EX){if(!R[key])continue;const a=g.ex?.re?.[key]||0,b=g.ex?.ko?.[key]||0;
+      if(a){ex+=a;exLines.push([label+(a>1?' ×'+a:''),'+'+a+' Re'])}
+      if(b){ex-=b;exLines.push([label+(b>1?' ×'+b:''),'+'+b+' Kontra'])}}
+  }
+  let value;
+  if(mult>1){
+    const ml=R.annMult==='once'?['Ansage']:[reAn&&'Re',koAn&&'Kontra'].filter(Boolean);
+    const ml_line=[ml.join(' + ')+' angesagt: Summe verdoppelt','×'+mult];
+    if(R.exDouble){lines.push(...exLines,ml_line);value=(base+ex)*mult}
+    else{lines.push(ml_line,...exLines);value=base*mult+ex}
+  }else{value=base+ex;lines.push(...exLines)}
+  if(realSolo&&R.soloBonus!=='off'){
+    if(R.soloBonus==='always'){value+=1;lines.push(['Solo-Extrapunkt','+1 Solist'])}
+    else if(winner){value+=winner==='re'?1:-1;lines.push(['Solo-Extrapunkt','+1 '+W])}
+  }
+  const manual=g.override!=null&&g.override!=='';
+  if(manual)value=+g.override;
+  const pts={};
+  for(const id of g.players){const isRe=g.re.includes(id);pts[id]=solo?(isRe?3*value:-value):(isRe?value:-value)}
+  return {winner,value,lines,pts,manual,re,ko,reAn,koAn,solo};
+}
+
+/* ---------- Daten ---------- */
+let db=load();
+function load(){try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&d.players){d.rules=d.rules&&d.rules.v===2?{...DEFAULT_RULES,...d.rules}:{...DEFAULT_RULES,...(d.rules||{}),exDouble:true,v:2};return d}}}catch(e){}return seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}}
+function seed(){
+  const P=[['p1','Oma Gerda'],['p2','Bernd'],['p3','Sabine'],['p4','Lena'],['p5','Jonas']].map(([id,name])=>({id,name}));
+  let s=1;
+  const G=(date,type,players,re,reAugen,o={})=>({id:'ex'+s,seq:s++,date,type,players,re,reAugen,reAn:!!o.reAn,koAn:!!o.koAn,reAbs:o.reAbs||0,koAbs:o.koAbs||0,hz:o.hz||null,hzAlone:false,ex:{re:o.exRe||{},ko:o.exKo||{}},override:null,upd:0});
+  const A=['p1','p2','p3','p4'],B=['p1','p2','p4','p5'];
+  const games=[
+    G('2026-10-24','normal',A,['p1','p3'],136,{reAn:1,exRe:{fuchs:1}}),
+    G('2026-10-24','normal',A,['p2','p4'],98,{koAn:1}),
+    G('2026-10-24','herz',A,['p2'],181,{reAn:1,reAbs:1}),
+    G('2026-10-24','normal',A,['p3','p4'],115,{exKo:{doko:1}}),
+    G('2026-10-24','normal',A,['p1','p2'],160,{reAn:1,exRe:{fuchs:1,karl:1}}),
+    G('2026-10-24','damen',A,['p3'],105),
+    G('2026-10-31','normal',B,['p4','p5'],191,{reAn:1,koAn:1,reAbs:1}),
+    G('2026-10-31','hochzeit',B,['p1','p5'],128,{hz:'p1',exKo:{fuchs:1}}),
+    G('2026-10-31','fleischlos',B,['p5'],92,{koAn:1}),
+    G('2026-10-31','normal',B,['p2','p1'],131,{exRe:{doko:1}}),
+    G('2026-10-31','kreuz',B,['p1'],214,{reAn:1,reAbs:2}),
+    G('2026-10-31','normal',B,['p2','p5'],120),
+  ];
+  return {v:1,example:true,players:P,games,deleted:[],rules:{...DEFAULT_RULES}};
+}
+const pById=id=>db.players.find(p=>p.id===id);
+const pName=id=>pById(id)?.name??'?';
+const pColor=id=>COLORS[Math.max(0,db.players.findIndex(p=>p.id===id))%COLORS.length];
+const sorted=()=>[...db.games].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.seq-b.seq);
+
+/* ---------- Zustand & Filter ---------- */
+const state={tab:'stand',filter:'all',player:null,form:null,confirm:null,imp:null};
+try{const t=localStorage.getItem(KEY+'.ui');if(t)Object.assign(state,JSON.parse(t))}catch(e){}
+function saveUi(){try{localStorage.setItem(KEY+'.ui',JSON.stringify({tab:state.tab,filter:state.filter,player:state.player}))}catch(e){}}
+function filtered(){
+  const all=sorted();
+  if(state.filter==='all') return all;
+  if(state.filter.startsWith('y')) return all.filter(g=>g.date.startsWith(state.filter.slice(1)));
+  return all.filter(g=>g.date===state.filter);
+}
+function renderFilter(){
+  const dates=[...new Set(db.games.map(g=>g.date))].sort().reverse();
+  const years=[...new Set(dates.map(d=>d.slice(0,4)))];
+  const opts=[['all','Alle Spiele'],...years.map(y=>['y'+y,'Jahr '+y]),...dates.map(d=>[d,'Abend '+fmtD(d)])];
+  if(!opts.some(o=>o[0]===state.filter)) state.filter='all';
+  document.getElementById('filter').innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===state.filter?' selected':''}>${h(l)}</option>`).join('');
+}
+
+/* ---------- Statistik ---------- */
+function standings(games){
+  const m={};
+  for(const g of games){const c=compute(g);for(const id of g.players){
+    const s=m[id]??={id,pts:0,n:0,won:0,solo:0};s.pts+=c.pts[id];s.n++;if(c.pts[id]>0)s.won++;if(isSolo(g.type)&&g.re.includes(id))s.solo++;}}
+  return Object.values(m).sort((a,b)=>b.pts-a.pts||a.n-b.n);
+}
+function playerStats(id,games){
+  const st={hzN:0,hzW:0,hzPts:0,hzAlone:0,n:0,pts:0,won:0,lost:0,reN:0,reW:0,koN:0,koW:0,soloN:0,soloW:0,soloPts:0,byType:{},anN:0,anW:0,best:null,worst:null,partners:{},curve:[]};
+  let cum=0;
+  for(const g of games){
+    if(!g.players.includes(id)) continue;
+    const c=compute(g),p=c.pts[id],isRe=g.re.includes(id),solo=c.solo,win=p>0;
+    if(g.type==='hochzeit'&&g.hz===id){st.hzN++;if(win)st.hzW++;st.hzPts+=p;if(g.hzAlone)st.hzAlone++}
+    st.n++;st.pts+=p;cum+=p;st.curve.push(cum);
+    if(p>0)st.won++;else if(p<0)st.lost++;
+    if(isRe){st.reN++;if(win)st.reW++}else{st.koN++;if(win)st.koW++}
+    if(isSolo(g.type)&&isRe){st.soloN++;if(win)st.soloW++;st.soloPts+=p;const t=st.byType[g.type]??={n:0,w:0,p:0};t.n++;if(win)t.w++;t.p+=p}
+    const an=isRe?(c.reAn):(c.koAn);
+    if(an){st.anN++;if(win)st.anW++}
+    if(!st.best||p>st.best.p)st.best={p,g};
+    if(!st.worst||p<st.worst.p)st.worst={p,g};
+    if(!solo){const mate=g.players.find(o=>o!==id&&g.re.includes(o)===isRe);if(mate){const q=st.partners[mate]??={n:0,w:0,p:0};q.n++;if(win)q.w++;q.p+=p}}
+  }
+  return st;
+}
+const pct=(a,b)=>b?Math.round(100*a/b)+' %':'–';
+
+/* ---------- Diagramm ---------- */
+function chart(series,{w=340,hgt=150}={}){
+  const len=Math.max(...series.map(s=>s.v.length),1);
+  const vals=series.flatMap(s=>s.v).concat(0);
+  let lo=Math.min(...vals),hi=Math.max(...vals);if(hi-lo<10){hi+=5;lo-=5}
+  const padL=30,padR=10,padT=10,padB=18;
+  const X=i=>padL+(len<=1?0:(w-padL-padR)*i/(len-1));
+  const Y=v=>padT+(hgt-padT-padB)*(hi-v)/(hi-lo);
+  const step=niceStep(hi-lo);let ticks=[];for(let t=Math.ceil(lo/step)*step;t<=hi;t+=step)ticks.push(t);
+  let s=`<svg viewBox="0 0 ${w} ${hgt}" role="img" aria-label="Punkteverlauf">`;
+  for(const t of ticks)s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--rule)" stroke-width="${t===0?1.5:1}"${t===0?' stroke-dasharray="0"':''}/><text x="${padL-6}" y="${Y(t)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">${t}</text>`;
+  s+=`<line x1="${padL}" x2="${w-padR}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
+  s+=`<text x="${padL}" y="${hgt-4}" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Spiel 1</text><text x="${w-padR}" y="${hgt-4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="var(--f-body)">Spiel ${len}</text>`;
+  for(const se of series){
+    if(!se.v.length)continue;
+    const pts=se.v.map((v,i)=>`${X(se.x?se.x[i]:i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${se.c}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li=se.v.length-1;s+=`<circle cx="${X(se.x?se.x[li]:li)}" cy="${Y(se.v[li])}" r="3.5" fill="${se.c}"/>`;
+  }
+  return s+'</svg>';
+}
+function niceStep(range){const raw=range/4;const p=Math.pow(10,Math.floor(Math.log10(raw)));for(const m of [1,2,5,10])if(raw<=m*p)return m*p;return 10*p}
+
+/* ---------- Ansichten ---------- */
+function render(){
+  renderFilter();
+  document.querySelectorAll('nav.tabs [data-tab]').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===state.tab));
+  const M=document.getElementById('main');
+  let out=db.example?`<div class="banner"><span><b>Beispieldaten</b> – so sieht ein Spieleabend aus. Für eure Familie einfach leeren und eigene Spieler anlegen.</span><button class="btn small" data-act="clearExample">Leeren &amp; loslegen</button></div>`:'';
+  out+=({stand:vStand,block:vBlock,spieler:vSpieler,regeln:vRegeln,teilen:vTeilen})[state.tab]();
+  M.innerHTML=out;
+  saveUi();
+}
+function vStand(){
+  const games=filtered();
+  if(!games.length) return `<section class="sheet empty">Noch keine Spiele${state.filter!=='all'?' in diesem Zeitraum':''}.<br><br><button class="btn primary" data-act="new">Erstes Spiel eintragen</button></section>`;
+  const st=standings(games);const sum=st.reduce((a,s)=>a+s.pts,0);
+  const list=st.map((s,i)=>`<li data-act="openPlayer" data-id="${s.id}" style="cursor:pointer"><span class="rank">${i+1}</span>
+    <span class="pname"><span class="dot" style="background:${pColor(s.id)}"></span><span class="n">${h(pName(s.id))}<br><span class="sub">${s.n} Spiele · ${pct(s.won,s.n)} gewonnen${s.solo?' · '+s.solo+' Soli':''}</span></span></span>
+    <span class="big ${cls(s.pts)}">${sg(s.pts)}</span></li>`).join('');
+  // Verlauf: Kumuliert je Spieler über alle Spiele des Filters
+  const series=st.map(s=>{let c=0;const v=[0],x=[0];games.forEach((g,i)=>{if(g.players.includes(s.id)){c+=compute(g).pts[s.id];v.push(c);x.push(i+1)}});return {v,x,c:pColor(s.id)}});
+  const last=games[games.length-1],lc=compute(last);
+  return `<section class="stack"><div class="row" style="justify-content:space-between"><h2>Tabelle</h2><span class="sub">${games.length} Spiele</span></div>
+    <div class="sheet"><ol class="standings">${list}</ol>
+    <div class="sumline"><span>Summe aller Spieler</span><span class="num">${sum===0?'0 ✓ ausgeglichen':'<span class="neg">'+sum+' – Daten prüfen</span>'}</span></div></div></section>
+    <section class="stack"><h2>Verlauf</h2><div class="sheet"><div class="chart-wrap">${chart(series.map(s=>({...s,x:s.x})),{})}</div>
+    <div class="legend">${st.map(s=>`<span><span class="dot" style="background:${pColor(s.id)}"></span>${h(pName(s.id))}</span>`).join('')}</div></div></section>
+    <section class="stack"><h2>Letztes Spiel</h2>${gameCard(last,lc)}</section>`;
+}
+function gameMeta(g,c){
+  const solo=c.solo;const parts=[];
+  parts.push(`<span class="tag ${solo?'solo':'re'}">${h(TNAME[g.type])}${g.type==='hochzeit'&&g.hz?' von '+h(pName(g.hz))+(g.hzAlone?', allein':''):''}</span>`);
+  parts.push(`<span class="num">Re ${c.re} : ${c.ko} Kontra</span>`);
+  const an=[];if(c.reAn)an.push('Re'+(g.reAbs?' + '+ABS[g.reAbs]:''));if(c.koAn)an.push('Kontra'+(g.koAbs?' + '+ABS[g.koAbs]:''));
+  if(an.length)parts.push('Ansagen: '+an.join(', '));
+  const ex=[],R=rules();if(!solo&&g.ex)for(const [k,l] of EX){if(!R[k])continue;const a=(g.ex.re?.[k]||0)+(g.ex.ko?.[k]||0);if(a)ex.push(l+(a>1?' ×'+a:''))}
+  if(ex.length)parts.push(ex.join(', '));
+  parts.push(c.winner?`<b>${c.winner==='re'?(solo?'Solist':'Re'):'Kontra'} gewinnt</b>`:'<b>keiner gewinnt</b>');
+  if(c.manual)parts.push('manuell gewertet');
+  return parts;
+}
+function gameCard(g,c){
+  return `<div class="sheet pad stack" data-act="edit" data-id="${g.id}" style="cursor:pointer">
+    <div class="row sub">${fmtD(g.date)} · ${gameMeta(g,c).join(' · ')}</div>
+    <div class="ppl">${g.players.map(id=>`<div><span class="sub">${h(pName(id))}</span><b class="${cls(c.pts[id])}">${sg(c.pts[id])}</b><span class="tag ${g.re.includes(id)?'re':'ko'}">${g.re.includes(id)?(c.solo?'Solo':'Re'):'Kontra'}</span></div>`).join('')}</div></div>`;
+}
+function vBlock(){
+  const games=filtered();
+  if(!games.length) return `<section class="sheet empty">Der Block ist noch leer.<br><br><button class="btn primary" data-act="new">Spiel eintragen</button></section>`;
+  const ids=standings(games).map(s=>s.id);
+  const cols=`2.4rem repeat(${ids.length},minmax(64px,1fr)) 3.4rem`;
+  let s=`<div class="bh">Nr.</div>${ids.map(id=>`<div class="bh" title="${h(pName(id))}">${h(pName(id))}</div>`).join('')}<div class="bh">Wert</div>`;
+  const run=Object.fromEntries(ids.map(i=>[i,0]));let lastDate='';
+  games.forEach((g,i)=>{
+    const c=compute(g);
+    if(g.date!==lastDate&&state.filter==='all'||i===0&&state.filter!=='all'&&g.date!==lastDate){s+=`<div class="label" style="grid-column:1/-1;padding:14px 6px 4px">Abend ${fmtD(g.date)}</div>`}
+    lastDate=g.date;
+    s+=`<div class="brow" data-act="edit" data-id="${g.id}" role="button" tabindex="0"><div class="bc no">${i+1}</div>`;
+    for(const id of ids){
+      if(g.players.includes(id)){run[id]+=c.pts[id];s+=`<div class="bc ${cls(run[id])}">${sg(run[id])}<small class="${cls(c.pts[id])}">${sg(c.pts[id])}</small></div>`}
+      else s+=`<div class="bc out">${sg(run[id])}<small>aus</small></div>`;
+    }
+    s+=`<div class="bc">${Math.abs(c.value)}${c.solo?'<small>×3</small>':'<small>&nbsp;</small>'}</div></div>`;
+    s+=`<div class="bmeta">${gameMeta(g,c).join('<span aria-hidden="true">·</span>')}</div>`;
+  });
+  return `<section class="stack"><div class="row" style="justify-content:space-between"><h2>Spielblock</h2><span class="sub">Zum Bearbeiten ein Spiel antippen</span></div>
+    <div class="sheet block-scroll"><div class="block" style="grid-template-columns:${cols}">${s}</div></div></section>`;
+}
+function vSpieler(){
+  const games=filtered();
+  if(!db.players.length) return `<section class="sheet pad stack"><h2>Spieler</h2><p class="help">Noch niemand angelegt.</p>${addPlayerRow()}</section>`;
+  if(!state.player||!pById(state.player)) state.player=(standings(games)[0]||{}).id||db.players[0].id;
+  const id=state.player,st=playerStats(id,games);
+  const chips=db.players.map(p=>`<button class="chip${p.id===id?' on':''}" data-act="openPlayer" data-id="${p.id}"><span class="dot" style="background:${pColor(p.id)}"></span>${h(p.name)}</button>`).join('');
+  let body;
+  if(!st.n) body=`<div class="sheet empty">${h(pName(id))} hat in diesem Zeitraum nicht mitgespielt.</div>`;
+  else{
+    const soloRows=TYPES.filter(([t])=>isSolo(t)).map(([t,l])=>{const x=st.byType[t];return x?`<tr><td>${l}</td><td class="r">${x.n}</td><td class="r">${x.w}</td><td class="r ${cls(x.p)}">${sg(x.p)}</td></tr>`:''}).join('');
+    const partners=Object.entries(st.partners).sort((a,b)=>b[1].p-a[1].p).map(([pid,q])=>`<tr><td>${h(pName(pid))}</td><td class="r">${q.n}</td><td class="r">${pct(q.w,q.n)}</td><td class="r ${cls(q.p)}">${sg(q.p)}</td></tr>`).join('');
+    body=`<div class="kv">
+      <div><span class="label">Punkte</span><b class="${cls(st.pts)}">${sg(st.pts)}</b></div>
+      <div><span class="label">Spiele</span><b>${st.n}</b></div>
+      <div><span class="label">Gewonnen</span><b>${pct(st.won,st.n)}</b><span class="sub">${st.won} von ${st.n}</span></div>
+      <div><span class="label">Ø pro Spiel</span><b class="${cls(st.pts)}">${(st.pts/st.n).toFixed(2).replace('.',',')}</b></div>
+      <div><span class="label">als Re</span><b>${pct(st.reW,st.reN)}</b><span class="sub">${st.reW} von ${st.reN} gewonnen</span></div>
+      <div><span class="label">als Kontra</span><b>${pct(st.koW,st.koN)}</b><span class="sub">${st.koW} von ${st.koN} gewonnen</span></div>
+      <div><span class="label">Mit Ansage</span><b>${pct(st.anW,st.anN)}</b><span class="sub">${st.anW} von ${st.anN} gewonnen</span></div>
+      <div><span class="label">Soli</span><b>${st.soloN}</b><span class="sub">${st.soloW} gewonnen · ${sg(st.soloPts)} Pkt.</span></div>
+      <div><span class="label">Hochzeiten</span><b>${st.hzN}</b><span class="sub">${st.hzW} gewonnen · ${sg(st.hzPts)} Pkt.${st.hzAlone?' · '+st.hzAlone+'× allein':''}</span></div>
+    </div>
+    <div class="sheet"><div class="pad" style="padding-bottom:0"><span class="label">Punkteverlauf</span></div><div class="chart-wrap">${chart([{v:[0,...st.curve],c:pColor(id)}])}</div></div>
+    ${st.soloN?`<div class="sheet"><table class="t"><thead><tr><th>Solo</th><th class="r">Gespielt</th><th class="r">Gew.</th><th class="r">Punkte</th></tr></thead><tbody>${soloRows}</tbody></table></div>`:''}
+    ${partners?`<div class="sheet"><table class="t"><thead><tr><th>Partner</th><th class="r">Spiele</th><th class="r">Gew.</th><th class="r">Punkte</th></tr></thead><tbody>${partners}</tbody></table></div>`:''}
+    <div class="kv"><div><span class="label">Bestes Spiel</span><b class="pos">${sg(st.best.p)}</b><span class="sub">${TNAME[st.best.g.type]}, ${fmtD(st.best.g.date)}</span></div>
+      <div><span class="label">Schlechtestes Spiel</span><b class="${cls(st.worst.p)}">${sg(st.worst.p)}</b><span class="sub">${TNAME[st.worst.g.type]}, ${fmtD(st.worst.g.date)}</span></div></div>`;
+  }
+  const used=db.games.some(g=>g.players.includes(id));
+  return `<section class="stack"><h2>Spieler</h2><div class="chips">${chips}</div></section>
+    <section class="stack">${body}</section>
+    <section class="sheet pad stack"><span class="label">Spieler verwalten</span>
+      <div class="row"><input type="text" id="rename" value="${h(pName(id))}" aria-label="Name ändern" style="flex:1"><button class="btn small" data-act="rename">Umbenennen</button>
+      ${used?'':`<button class="btn small danger" data-act="delPlayer">Entfernen</button>`}</div>
+      ${addPlayerRow()}</section>`;
+}
+function addPlayerRow(){return `<div class="row"><input type="text" id="newPlayer" placeholder="Neuer Spieler, z. B. Tante Ute" style="flex:1" aria-label="Neuer Spieler"><button class="btn small primary" data-act="addPlayer">Hinzufügen</button></div>`}
+
+/* ---------- Teilen ---------- */
+function summaryText(){
+  const games=sorted();const st=standings(games);
+  const last=games.length?fmtD(games[games.length-1].date):'';
+  let t=`🂠 Doppelkopf-Stand (${games.length} Spiele, zuletzt ${last})\n`;
+  st.forEach((s,i)=>t+=`${i+1}. ${pName(s.id)}: ${sg(s.pts)} (${s.n} Spiele)\n`);
+  return t;
+}
+async function encode(){
+  const data={v:1,players:db.players,games:db.games,deleted:db.deleted||[],rules:rules()};
+  const json=JSON.stringify(data);
+  try{if('CompressionStream' in window){
+    const st=new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return 'DOKO1:'+b64(new Uint8Array(await new Response(st).arrayBuffer()));}}catch(e){}
+  return 'DOKO0:'+b64(new TextEncoder().encode(json));
+}
+function b64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function unb64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+async function decode(text){
+  text=text.trim();
+  if(text.startsWith('{')) return JSON.parse(text);
+  const m=text.replace(/\s+/g,'').match(/DOKO([01]):([A-Za-z0-9_-]+)/);
+  if(!m) throw new Error('Kein Import-Code gefunden. Er beginnt mit „DOKO1:“.');
+  let u=unb64(m[2]);
+  if(m[1]==='1'){
+    if(!('DecompressionStream' in window)) throw new Error('Dieser Browser kann den Code nicht entpacken. Bitte Chrome verwenden.');
+    const st=new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw'));u=new Uint8Array(await new Response(st).arrayBuffer());
+  }
+  const d=JSON.parse(new TextDecoder().decode(u));
+  if(!d.players||!d.games) throw new Error('Der Code enthält keine Doppelkopf-Daten.');
+  return d;
+}
+function merge(inc,mode,adopt){
+  if(adopt&&inc.rules)db.rules={...DEFAULT_RULES,...inc.rules};
+  if(mode==='replace'||db.example){db={v:1,players:inc.players,games:inc.games,deleted:inc.deleted||[],rules:{...DEFAULT_RULES,...(inc.rules||rules())}};return {added:inc.games.length,updated:0,newP:inc.players.length,replaced:true}}
+  const map={};let newP=0,added=0,updated=0;
+  for(const p of inc.players){
+    if(pById(p.id)){map[p.id]=p.id;continue}
+    const same=db.players.find(q=>q.name.trim().toLowerCase()===p.name.trim().toLowerCase());
+    if(same)map[p.id]=same.id;else{db.players.push({id:p.id,name:p.name});map[p.id]=p.id;newP++}
+  }
+  const del=new Set([...(db.deleted||[]),...(inc.deleted||[])]);db.deleted=[...del];
+  for(const g0 of inc.games){
+    if(del.has(g0.id))continue;
+    const g={...g0,players:g0.players.map(i=>map[i]||i),re:g0.re.map(i=>map[i]||i)};
+    const i=db.games.findIndex(x=>x.id===g.id);
+    if(i<0){db.games.push(g);added++}else if((g.upd||0)>(db.games[i].upd||0)){db.games[i]=g;updated++}
+  }
+  db.games=db.games.filter(g=>!del.has(g.id));
+  return {added,updated,newP};
+}
+const inFrame=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+function vTeilen(){
+  const canFile=!inFrame&&navigator.canShare&&(()=>{try{return navigator.canShare({files:[new File(['x'],'a.json',{type:'application/json'})]})}catch(e){return false}})();
+  const imp=state.imp;
+  let impBox='';
+  if(imp&&imp.data){impBox=`<div class="sheet pad stack" style="border-color:var(--re)"><b>Gefunden: ${imp.data.games.length} Spiele, ${imp.data.players.length} Spieler</b>
+    ${imp.data.rules&&JSON.stringify({...DEFAULT_RULES,...imp.data.rules})!==JSON.stringify(rules())?`<label class="row" style="gap:8px"><input type="checkbox" id="imp-rules" checked> Regeln des Absenders übernehmen (sie weichen von deinen ab)</label>`:''}
+    <span class="help">Zusammenführen fügt neue Spiele hinzu und übernimmt neuere Änderungen. Ersetzen überschreibt alles auf diesem Handy.</span>
+    <div class="row"><button class="btn primary" data-act="doImport" data-mode="merge">Zusammenführen</button><button class="btn danger" data-act="doImport" data-mode="replace">Alles ersetzen</button><button class="btn" data-act="cancelImport">Abbrechen</button></div></div>`}
+  else if(imp&&imp.err) impBox=`<p class="warn">${h(imp.err)}</p>`;
+  return `<section class="stack"><h2>Stand verschicken</h2>
+    <p class="help">Die Nachricht enthält den Tabellenstand zum Lesen und darunter einen Import-Code. Wer die App auch nutzt, fügt die ganze Nachricht unten bei „Stand übernehmen“ ein.</p>
+    <div class="sheet pad stack"><textarea id="exportText" readonly aria-label="Nachricht zum Verschicken">Wird erstellt …</textarea>
+      <div class="row"><button class="btn primary" data-act="copy">Nachricht kopieren</button>
+      <a class="btn" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">In WhatsApp öffnen</a>
+      ${canFile?'<button class="btn" data-act="shareFile">Als Datei teilen</button>':''}</div>
+      <span class="help" id="waHint"></span></div></section>
+    <section class="stack"><h2>Stand übernehmen</h2>
+    <div class="sheet pad stack"><textarea id="importText" placeholder="WhatsApp-Nachricht mit „DOKO1:…“ hier einfügen" aria-label="Import-Code einfügen"></textarea>
+      <div class="row"><button class="btn primary" data-act="readImport">Prüfen</button>
+      <label class="btn" style="display:inline-flex">Datei wählen<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" hidden></label></div>${impBox}</div></section>
+    <section class="stack"><h2>Spielliste als CSV</h2><div class="sheet pad stack">
+      <p class="help">Für Excel oder LibreOffice: jedes Spiel eine Zeile mit Ansagen, Augen und Punkten je Spieler, getrennt mit Semikolon. Zum Abgleich zwischen den Handys bitte die Nachricht oben verwenden; die CSV ist nur zum Auswerten.</p>
+      <div class="row"><button class="btn" data-act="csv">${inFrame?'CSV kopieren':'CSV speichern'}</button></div></div></section>
+    <section class="sheet pad stack"><span class="label">Daten auf diesem Handy</span>
+      ${state.confirm==='wipe'?`<div class="row"><span class="warn">Wirklich alle Spiele und Spieler löschen?</span><button class="btn danger" data-act="wipe">Ja, löschen</button><button class="btn" data-act="noConfirm">Abbrechen</button></div>`:`<div class="row"><button class="btn danger small" data-act="askWipe">Alle Daten löschen</button></div>`}
+    </section>`;
+}
+async function fillExport(){
+  const ta=document.getElementById('exportText');if(!ta)return;
+  const code=await encode();
+  const msg=summaryText()+'\nImport-Code für die Doppelkopf-App:\n'+code;
+  ta.value=msg;
+  const wa=document.getElementById('waLink'),hint=document.getElementById('waHint');
+  const url='https://wa.me/?text='+encodeURIComponent(msg);
+  if(url.length<7000){wa.href=url;hint.textContent=`${db.games.length} Spiele · ${code.length} Zeichen Code`}
+  else{wa.href='https://wa.me/?text='+encodeURIComponent(summaryText()+'\n(Import-Code folgt in der nächsten Nachricht)');hint.textContent='Der Code ist zu lang für den direkten Link. „In WhatsApp öffnen“ schickt nur den Stand; den kompletten Text bitte kopieren und einfügen.'}
+}
+
+function csvText(){
+  const R=rules(),ps=db.players,esc=v=>{v=String(v??'');return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const head=['Nr','Datum','Spielart','Hochzeit von','Re / Solist','Kontra','Augen Re','Augen Kontra','Re angesagt','Absage Re','Kontra angesagt','Absage Kontra','Fuchs Re','Fuchs Kontra','Doppelkopf Re','Doppelkopf Kontra','Karlchen Re','Karlchen Kontra','Gewinner','Spielwert',...ps.map(p=>p.name)];
+  const rows=sorted().map((g,i)=>{const c=compute(g,R);const ko=g.players.filter(x=>!g.re.includes(x));
+    return [i+1,fmtD(g.date),TNAME[g.type]+(g.hzAlone?' (allein)':''),g.hz?pName(g.hz):'',g.re.map(pName).join(', '),ko.map(pName).join(', '),c.re,c.ko,c.reAn?'ja':'',g.reAbs?ABS[g.reAbs]:'',c.koAn?'ja':'',g.koAbs?ABS[g.koAbs]:'',
+      g.ex?.re?.fuchs||'',g.ex?.ko?.fuchs||'',g.ex?.re?.doko||'',g.ex?.ko?.doko||'',g.ex?.re?.karl||'',g.ex?.ko?.karl||'',c.winner==='re'?(c.solo?'Solist':'Re'):c.winner==='ko'?'Kontra':'keiner',Math.abs(c.value),...ps.map(p=>g.players.includes(p.id)?c.pts[p.id]:'')]});
+  return '﻿'+[head,...rows].map(r=>r.map(esc).join(';')).join('\r\n');
+}
+function vRegeln(){
+  const R=rules();
+  const opt=(k,v,l)=>`<button class="chip${R[k]===v?' on':''}" data-act="rule" data-k="${k}" data-v="${v}" aria-pressed="${R[k]===v}">${l}</button>`;
+  const tg=(k,l)=>`<button class="chip${R[k]?' on':''}" data-act="ruleT" data-k="${k}" aria-pressed="${!!R[k]}">${R[k]?'✓ ':''}${l}</button>`;
+  const P=['a','b','c','d'];
+  const exs=[
+    ['Re mit Ansage, keine 90 und keine 60; Kontra hat 50 Augen',{type:'normal',players:P,re:['a','b'],reAugen:190,reAn:true,reAbs:2,koAn:false,koAbs:0,ex:{re:{},ko:{}}}],
+    ['Re sagt keine 90 ab, Kontra holt 100 Augen und einen Fuchs',{type:'normal',players:P,re:['a','b'],reAugen:140,reAn:true,reAbs:1,koAn:false,koAbs:0,ex:{re:{},ko:{fuchs:1}}}],
+    ['Herz-Solo mit Re-Ansage, Solist hat 165 Augen',{type:'herz',players:P,re:['a'],reAugen:165,reAn:true,reAbs:0,koAn:false,koAbs:0,ex:{re:{},ko:{}}}]];
+  const exHtml=exs.map(([t,g])=>{const c=compute(g,R);return `<div class="preview"><b>${t}</b><ul>${c.lines.map(([a,b])=>`<li><span>${h(a)}</span><span class="num">${h(b)}</span></li>`).join('')}</ul>
+    <div class="row" style="justify-content:space-between"><span>Spielwert</span><span class="verdict num">${Math.abs(c.value)}${c.solo?` · Solist ${sg(c.pts.a)}, Gegner je ${sg(c.pts.b)}`:''}</span></div></div>`}).join('');
+  return `<section class="stack"><h2>Regeln</h2><p class="help">Die Regeln gelten für alle Spiele, auch rückwirkend, und werden beim Teilen mitgeschickt, damit alle gleich zählen.</p>
+    <div class="sheet pad stack"><span class="label">Ansagen und Absagen</span>
+      <div class="chips">${opt('mode','familie','Familienregel: Stufen, Absage doppelt')}${opt('mode','ddv','DDV: Ansage +2, Absage +1')}</div>
+      <p class="help">${R.mode==='familie'?'Je 1 Punkt, wenn der Gegner 121 (gewonnen), 90, 60, 30 oder 0 Augen nicht erreicht. Eine abgesagte Stufe zählt doppelt. Verfehlt der Gegner eine Absage, zählt jede verfehlte Stufe doppelt für den Gewinner. Eine Re- oder Kontra-Ansage verdoppelt am Ende die Summe.':'Offizielle Turnierwertung des Deutschen Doppelkopf-Verbands.'}</p>
+      ${R.mode==='familie'?`<span class="label">Wenn Re und Kontra angesagt sind</span><div class="chips">${opt('annMult','each','je ×2, zusammen ×4')}${opt('annMult','once','nur einmal ×2')}</div>`:''}</div>
+    <div class="sheet pad stack"><span class="label">Sonderpunkte (nicht im Solo)</span>
+      <div class="chips">${tg('fuchs','Fuchs gefangen')}${tg('alten','Gegen die Alten')}${tg('doko','Doppelkopf')}${tg('karl','Karlchen im letzten Stich')}</div>
+      ${R.mode==='familie'?`<div class="chips">${tg('exDouble','Sonderpunkte durch Ansage mitverdoppeln')}</div>`:''}</div>
+    <div class="sheet pad stack"><span class="label">Solo</span><p class="help">Solist zählt dreifach, die drei Gegner einfach.</p>
+      <span class="label">Extrapunkt fürs Solo</span><div class="chips">${opt('soloBonus','always','immer für den Solisten')}${opt('soloBonus','winner','für den Gewinner')}${opt('soloBonus','off','keiner')}</div></div></section>
+    <section class="stack"><h2>So wird gerechnet</h2>${exHtml}</section>`;
+}
+function hzRe(f){f.re=!f.hz?[]:f.hzAlone?[f.hz]:f.hzPartner?[f.hz,f.hzPartner]:[f.hz]}
+
+/* ---------- Spielformular ---------- */
+function newForm(g){
+  if(g) return JSON.parse(JSON.stringify({...g,hzPartner:g.type==='hochzeit'&&!g.hzAlone?g.re.find(x=>x!==g.hz)||null:null,ex:{re:{...(g.ex?.re||{})},ko:{...(g.ex?.ko||{})}},manual:g.override!=null}));
+  const last=sorted().pop();
+  return {id:null,hz:null,hzAlone:false,hzPartner:null,date:today(),type:'normal',players:last?[...last.players]:db.players.slice(0,4).map(p=>p.id),re:[],reAugen:'',reAn:false,koAn:false,reAbs:0,koAbs:0,ex:{re:{},ko:{}},override:null,manual:false};
+}
+function formIssues(f){
+  const iss=[];
+  if(f.players.length!==4)iss.push('Genau 4 Spieler am Tisch auswählen.');
+  if(f.type==='hochzeit'){if(!f.hz||!f.players.includes(f.hz))iss.push('Auswählen, wer die Hochzeit hatte.');else if(!f.hzAlone&&!f.hzPartner)iss.push('Partner wählen oder „allein“.')}
+  const need=soloG(f)?1:2;
+  if(f.re.filter(i=>f.players.includes(i)).length!==need)if(f.type!=='hochzeit')iss.push(isSolo(f.type)?'Solisten auswählen.':'Beide Re-Spieler auswählen.');
+  const a=f.reAugen;if(a===''||isNaN(+a)||+a<0||+a>240)iss.push('Augen der Re-Partei eintragen (0–240).');
+  if(f.manual&&(f.override===''||f.override==null||isNaN(+f.override)))iss.push('Manuellen Spielwert eintragen.');
+  return iss;
+}
+function asGame(f){const hz=f.type==='hochzeit';return {...f,hz:hz?f.hz:null,hzAlone:hz&&!!f.hzAlone,hzPartner:undefined,re:f.re.filter(i=>f.players.includes(i)),reAugen:+f.reAugen,override:f.manual?+f.override:null}}
+function renderForm(){
+  const O=document.getElementById('overlay');const f=state.form;
+  if(!f){O.innerHTML='';document.body.style.overflow='';return}
+  document.body.style.overflow='hidden';
+  const solo=soloG(f),R=rules();
+  const tbl=db.players.map(p=>{const on=f.players.includes(p.id);return `<button class="chip${on?' on':''}${!on&&f.players.length>=4?' dim':''}" data-act="tp" data-id="${p.id}" aria-pressed="${on}"><span class="dot" style="background:${pColor(p.id)}"></span>${h(p.name)}</button>`}).join('');
+  const types=TYPES.map(([t,l])=>`<button class="chip${f.type===t?' on':''}" data-act="type" data-t="${t}" aria-pressed="${f.type===t}">${l}</button>`).join('');
+  const reChips=f.players.map(id=>{const on=f.re.includes(id);return `<button class="chip re${on?' on':''}" data-act="re" data-id="${id}" aria-pressed="${on}">${h(pName(id))}</button>`}).join('');
+  const absSel=(side,v)=>`<select id="f-${side}abs" aria-label="Absage">${ABS.map((l,i)=>`<option value="${i}"${+v===i?' selected':''}>${i?l:'keine Absage'}</option>`).join('')}</select>`;
+  const EXA=EX.filter(x=>R[x[0]]);
+  const ex=solo?'<p class="help">Im Solo gibt es keine Sonderpunkte.</p>':!EXA.length?'<p class="help">Keine Sonderpunkte aktiv.</p>':`<div class="extras"><span></span><span class="label" style="color:var(--re)">Re</span><span class="label" style="color:var(--ko)">Kontra</span>
+    ${EXA.map(([k,l])=>`<span>${l}</span>${['re','ko'].map(s=>`<span class="step ${s}"><button data-act="ex" data-k="${k}" data-s="${s}" data-d="-1" aria-label="${l} ${s} weniger">−</button><b>${f.ex[s][k]||0}</b><button data-act="ex" data-k="${k}" data-s="${s}" data-d="1" aria-label="${l} ${s} mehr">+</button></span>`).join('')}`).join('')}</div>`;
+  O.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Spiel eintragen"><div class="inner">
+    <div class="fhead"><h2>${f.id?'Spiel bearbeiten':'Neues Spiel'}</h2><input type="date" id="f-date" value="${h(f.date)}" aria-label="Datum"></div>
+    <div class="fsec"><span class="label">Am Tisch (${f.players.length}/4)</span><div class="chips">${tbl}</div>
+      <div class="row"><input type="text" id="f-newp" placeholder="Spieler fehlt? Name eingeben" style="flex:1"><button class="btn small" data-act="fAddP">Anlegen</button></div></div>
+    <div class="fsec"><span class="label">Spielart</span><div class="chips">${types}</div></div>
+    ${f.type==='hochzeit'?`<div class="fsec"><span class="label">Hochzeit hatte</span><div class="chips">${f.players.map(id=>`<button class="chip re${f.hz===id?' on':''}" data-act="hz" data-id="${id}" aria-pressed="${f.hz===id}">${h(pName(id))}</button>`).join('')||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>
+    ${f.hz?`<div class="fsec"><span class="label">Partner (Re)</span><div class="chips">${f.players.filter(id=>id!==f.hz).map(id=>`<button class="chip re${!f.hzAlone&&f.hzPartner===id?' on':''}" data-act="hzP" data-id="${id}">${h(pName(id))}</button>`).join('')}<button class="chip${f.hzAlone?' on':''}" data-act="hzAlone" aria-pressed="${!!f.hzAlone}">Kein Partner – allein</button></div>
+      <span class="help">Ohne Partner zählt die Hochzeit wie ein Solo (×3), aber ohne Solo-Extrapunkt.</span></div>`:''}`
+    :`<div class="fsec"><span class="label">${solo?'Solist (Re)':'Re-Partei (2 Spieler)'}</span><div class="chips">${reChips||'<span class="help">Erst Spieler am Tisch wählen.</span>'}</div></div>`}
+    <div class="fsec"><span class="label">Augen</span>
+      <div class="augen"><label class="side re"><span class="label" style="color:inherit">${solo?'Solist':'Re'}</span><input type="number" inputmode="numeric" min="0" max="240" id="f-augen" value="${h(f.reAugen)}" placeholder="121"></label>
+      <span class="colon">:</span><div class="side ko"><span class="label" style="color:inherit">Kontra</span><b id="f-ko">${f.reAugen===''?'–':240-(+f.reAugen)}</b></div></div>
+      <input type="range" min="0" max="240" step="1" id="f-range" value="${f.reAugen===''?120:+f.reAugen}" aria-label="Augen Re"></div>
+    <div class="fsec"><span class="label">Ansagen</span><div class="party">
+      <div class="re"><h3>${solo?'Solist':'Re'}</h3><button class="tog${f.reAn||f.reAbs>0?' on':''}" data-act="an" data-s="re"><span>Re angesagt</span></button>${absSel('re',f.reAbs)}</div>
+      <div class="ko"><h3>Kontra</h3><button class="tog${f.koAn||f.koAbs>0?' on':''}" data-act="an" data-s="ko"><span>Kontra angesagt</span></button>${absSel('ko',f.koAbs)}</div></div></div>
+    <div class="fsec"><span class="label">Sonderpunkte</span>${ex}${!solo&&R.alten?'<span class="help">„Gegen die Alten“ wird automatisch gezählt, wenn Kontra gewinnt.</span>':''}</div>
+    <details${f.manual?' open':''}><summary>Hausregel: Spielwert manuell</summary><div class="row" style="margin-top:8px">
+      <label class="row"><input type="checkbox" id="f-manual"${f.manual?' checked':''}> verwenden</label>
+      <input type="number" id="f-override" inputmode="numeric" value="${f.override??''}" placeholder="z. B. 5" style="width:7rem" aria-label="Spielwert aus Re-Sicht">
+      <span class="help">Wert aus Sicht der Re-Partei, negativ wenn Kontra gewinnt. Solo zählt weiterhin ×3.</span></div></details>
+    <div id="f-prev"></div>
+    ${f.id&&state.confirm==='delGame'?`<div class="row"><span class="warn">Spiel löschen?</span><button class="btn danger" data-act="delGame">Ja, löschen</button><button class="btn" data-act="noConfirmF">Nein</button></div>`:''}
+  </div></div>
+  <div class="savebar"><div class="in">${f.id?'<button class="btn danger" data-act="askDelGame">Löschen</button>':''}<button class="btn" data-act="closeForm">Abbrechen</button><button class="btn primary" data-act="saveGame" id="f-save">Speichern</button></div></div>`;
+  renderPreview();
+}
+function renderPreview(){
+  const f=state.form,P=document.getElementById('f-prev');if(!P)return;
+  const iss=formIssues(f);document.getElementById('f-save').disabled=iss.length>0;
+  if(iss.length){P.innerHTML=`<div class="preview"><span class="label">Noch offen</span><ul>${iss.map(i=>`<li>${h(i)}</li>`).join('')}</ul></div>`;return}
+  const g=asGame(f),c=compute(g),solo=c.solo;
+  const who=c.winner==='re'?(solo?'Solist gewinnt':'Re gewinnt'):c.winner==='ko'?'Kontra gewinnt':'Keine Partei erfüllt';
+  P.innerHTML=`<div class="preview"><div class="row" style="justify-content:space-between"><span class="verdict">${who}</span><span class="verdict num">${Math.abs(c.value)} Pkt.${solo?' ×3':''}</span></div>
+    ${c.manual?'<span class="help">Manuell festgelegt.</span>':`<ul>${c.lines.map(([t,p])=>`<li><span>${h(t)}</span><span class="num">${h(p)}</span></li>`).join('')||'<li>Keine Punkte</li>'}</ul>`}
+    <div class="ppl">${g.players.map(id=>`<div><span class="sub">${h(pName(id))}</span><b class="${cls(c.pts[id])}">${sg(c.pts[id])}</b></div>`).join('')}</div></div>`;
+}
+
+/* ---------- Ereignisse ---------- */
+function toast(t){const T=document.getElementById('toast');T.textContent=t;T.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>T.hidden=true,2400)}
+function addPlayer(name){name=name.trim();if(!name)return null;if(db.players.some(p=>p.name.toLowerCase()===name.toLowerCase())){toast(name+' gibt es schon');return null}
+  const p={id:uid(),name};db.players.push(p);save();return p}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-tab],[data-act]');if(!t)return;
+  if(t.dataset.tab){state.tab=t.dataset.tab;state.confirm=null;render();if(state.tab==='teilen')fillExport();window.scrollTo(0,0);return}
+  const a=t.dataset.act,f=state.form;
+  switch(a){
+    case 'new':state.form=newForm();state.confirm=null;renderForm();break;
+    case 'edit':{const g=db.games.find(x=>x.id===t.dataset.id);if(g){state.form=newForm(g);state.confirm=null;renderForm()}break}
+    case 'closeForm':state.form=null;renderForm();break;
+    case 'tp':{const id=t.dataset.id,i=f.players.indexOf(id);if(i>=0)f.players.splice(i,1);else if(f.players.length<4)f.players.push(id);else{toast('Es sind schon 4 am Tisch');break}renderForm();break}
+    case 'fAddP':{const inp=document.getElementById('f-newp');const p=addPlayer(inp.value);if(p){if(f.players.length<4)f.players.push(p.id);renderForm()}break}
+    case 'type':{const was=isSolo(f.type);f.type=t.dataset.t;if(was!==isSolo(f.type)||f.type==='hochzeit')f.re=[];f.hz=null;f.hzAlone=false;f.hzPartner=null;renderForm();break}
+    case 'hz':f.hz=t.dataset.id;if(f.hzPartner===f.hz)f.hzPartner=null;hzRe(f);renderForm();break;
+    case 'hzP':f.hzPartner=t.dataset.id;f.hzAlone=false;hzRe(f);renderForm();break;
+    case 'hzAlone':f.hzAlone=!f.hzAlone;if(f.hzAlone)f.hzPartner=null;hzRe(f);renderForm();break;
+    case 'rule':db.rules={...rules(),[t.dataset.k]:t.dataset.v};save();render();break;
+    case 'ruleT':db.rules={...rules(),[t.dataset.k]:!rules()[t.dataset.k]};save();render();break;
+    case 'csv':{const c=csvText();if(!inFrame){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv;charset=utf-8'}));a.download='doppelkopf-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();toast('CSV gespeichert')}
+      else{try{await navigator.clipboard.writeText(c);toast('CSV kopiert – in Excel einfügen')}catch(err){toast('Kopieren nicht möglich')}}break}
+    case 're':{const id=t.dataset.id,max=isSolo(f.type)?1:2,i=f.re.indexOf(id);if(i>=0)f.re.splice(i,1);else{if(f.re.length>=max)f.re.shift();f.re.push(id)}renderForm();break}
+    case 'an':{const s=t.dataset.s;if(f[s+'Abs']>0){toast('Mit Absage gilt die Ansage automatisch');break}f[s+'An']=!f[s+'An'];renderForm();break}
+    case 'ex':{const {k,s}=t.dataset,max=EX.find(x=>x[0]===k)[2];const v=Math.max(0,Math.min(max,(f.ex[s][k]||0)+ +t.dataset.d));f.ex[s][k]=v;renderForm();break}
+    case 'saveGame':{if(formIssues(f).length)break;const g=asGame(f);delete g.manual;g.upd=Date.now();
+      if(!g.id){g.id=uid();g.seq=Date.now();db.games.push(g)}else{const i=db.games.findIndex(x=>x.id===g.id);db.games[i]=g}
+      save();state.form=null;renderForm();render();toast('Spiel gespeichert');break}
+    case 'askDelGame':state.confirm='delGame';renderForm();break;
+    case 'noConfirmF':state.confirm=null;renderForm();break;
+    case 'delGame':db.games=db.games.filter(x=>x.id!==f.id);(db.deleted||=[]).push(f.id);save();state.form=null;state.confirm=null;renderForm();render();toast('Spiel gelöscht');break;
+    case 'openPlayer':state.player=t.dataset.id;state.tab='spieler';render();break;
+    case 'addPlayer':{const p=addPlayer(document.getElementById('newPlayer').value);if(p){state.player=p.id;render();toast(p.name+' angelegt')}break}
+    case 'rename':{const v=document.getElementById('rename').value.trim();if(v){pById(state.player).name=v;save();render();toast('Umbenannt')}break}
+    case 'delPlayer':db.players=db.players.filter(p=>p.id!==state.player);state.player=null;save();render();break;
+    case 'clearExample':db={v:1,players:[],games:[],deleted:[],rules:rules()};save();state.tab='spieler';state.filter='all';render();toast('Leer. Jetzt Spieler anlegen.');break;
+    case 'copy':{const ta=document.getElementById('exportText');try{await navigator.clipboard.writeText(ta.value);toast('Kopiert – jetzt in WhatsApp einfügen')}catch(err){ta.focus();ta.select();toast('Text markiert – bitte selbst kopieren')}break}
+    case 'shareFile':{try{const code=document.getElementById('exportText').value;const file=new File([JSON.stringify({v:1,players:db.players,games:db.games,deleted:db.deleted||[],rules:rules()})],'doppelkopf-'+today()+'.json',{type:'application/json'});await navigator.share({files:[file],text:summaryText()})}catch(err){}break}
+    case 'readImport':{try{state.imp={data:await decode(document.getElementById('importText').value)}}catch(err){state.imp={err:err.message}}const v=document.getElementById('importText').value;render();fillExport();document.getElementById('importText').value=v;break}
+    case 'doImport':{const cb=document.getElementById('imp-rules');const r=merge(state.imp.data,t.dataset.mode,cb?cb.checked:false);save();state.imp=null;render();fillExport();toast(r.replaced?`Übernommen: ${r.added} Spiele`:`${r.added} neu, ${r.updated} aktualisiert, ${r.newP} neue Spieler`);break}
+    case 'cancelImport':state.imp=null;render();fillExport();break;
+    case 'askWipe':state.confirm='wipe';render();fillExport();break;
+    case 'noConfirm':state.confirm=null;render();fillExport();break;
+    case 'wipe':db={v:1,players:[],games:[],deleted:[],rules:rules()};save();state.confirm=null;state.tab='spieler';render();toast('Alles gelöscht');break;
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest('.brow')){e.target.closest('.brow').click()}if(e.key==='Escape'&&state.form){state.form=null;renderForm()}});
+document.addEventListener('input',e=>{
+  const f=state.form,id=e.target.id;
+  if(f&&(id==='f-augen'||id==='f-range')){
+    let v=e.target.value;if(v!==''){v=Math.max(0,Math.min(240,Math.round(+v)))}
+    f.reAugen=v===''?'':String(v);
+    if(id==='f-range')document.getElementById('f-augen').value=f.reAugen;else if(v!=='')document.getElementById('f-range').value=v;
+    document.getElementById('f-ko').textContent=f.reAugen===''?'–':240-(+f.reAugen);renderPreview();
+  }
+  if(f&&id==='f-override'){f.override=e.target.value;renderPreview()}
+});
+document.addEventListener('change',async e=>{
+  const f=state.form,id=e.target.id;
+  if(id==='filter'){state.filter=e.target.value;render();return}
+  if(f&&id==='f-date')f.date=e.target.value;
+  if(f&&(id==='f-reabs'||id==='f-koabs')){const s=id.slice(2,4);f[s+'Abs']=+e.target.value;if(f[s+'Abs']>0)f[s+'An']=true;renderForm()}
+  if(f&&id==='f-manual'){f.manual=e.target.checked;renderPreview()}
+  if(id==='importFile'&&e.target.files[0]){const txt=await e.target.files[0].text();try{state.imp={data:await decode(txt)}}catch(err){state.imp={err:err.message}}render();fillExport()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='newPlayer')document.querySelector('[data-act=addPlayer]').click();if(e.key==='Enter'&&e.target.id==='f-newp')document.querySelector('[data-act=fAddP]').click()});
+
+render();if(state.tab==='teilen')fillExport();
+// Als installierte App (eigener Server) offline-fähig machen
+if(!inFrame&&'serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+</script>
+
+</body>
+</html>

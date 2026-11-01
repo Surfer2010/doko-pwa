@@ -1,0 +1,10 @@
+Doppelkopf-Block als App installieren
+
+1. Den Ordnerinhalt auf einen Webserver mit HTTPS legen (z. B. GitHub Pages, Netlify Drop
+   oder ein eigener Server mit Zertifikat). Ohne HTTPS lässt sich die App nicht installieren.
+2. Adresse in Chrome auf dem Android-Handy öffnen.
+3. Menü ⋮ > "Zum Startbildschirm hinzufügen" bzw. "App installieren".
+
+Danach läuft die App offline. Jeder in der Familie hat seine eigenen Daten auf dem Handy;
+abgeglichen wird über "Teilen": Nachricht kopieren, per WhatsApp schicken,
+der Empfänger fügt sie unter "Stand übernehmen" ein.
